@@ -76,7 +76,7 @@ export default function About() {
           <div className="fade-in opacity-0 translate-y-6 transition-all duration-700 delay-100 w-full lg:w-1/2">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src="../assets/shop.jpg"
+                src={ShopImage}
                 alt="NEW MEDICINE CENTER — Shop"
                 className="w-full h-72 object-cover"
               />
@@ -93,7 +93,7 @@ export default function About() {
             <div className="flex items-center gap-5 mb-6">
               <div className="relative">
                 <img
-                  src="../assets/owner.jpg"
+                  src={OwnwerImg}
                   alt="Akhtarul Hassan"
                   className="w-20 h-20 rounded-2xl object-cover shadow-lg border-4 border-emerald-100"
                 />
