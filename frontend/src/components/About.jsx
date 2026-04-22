@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import OwnwerImg from "/src/assets/owner.jpg"
-import ShopImage from "/src/assets/shop.jpg"
+import OwnwerImg from "../assets/owner.jpg"
+import ShopImage from "../assets/shop.jpg"
 const features = [
   {
     emoji: '⚡',
