@@ -101,7 +101,7 @@ export default function About() {
               </div>
               <div>
                 <h3 className="text-2xl font-black text-gray-900">Akhtarul Hassan</h3>
-                <p className="text-emerald-600 font-semibold">(Mukhiya Ji)</p>
+                <p className="text-emerald-600 font-semibold"></p>
                 <p className="text-gray-400 text-sm">Founder & Proprietor</p>
               </div>
             </div>
