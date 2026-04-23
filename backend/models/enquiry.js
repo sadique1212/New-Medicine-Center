@@ -110,8 +110,9 @@ router.patch('/:id/status', async (req, res) => {
 
     return res.status(200).json({ success: true, data: enquiry })
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Server error' })
-  }
+  console.log("ERROR 👉", error); // 👈 ADD THIS
+  return res.status(500).json({ success: false, message: error.message })
+}
 })
 
 module.exports = router
