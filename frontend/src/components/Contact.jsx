@@ -1,15 +1,22 @@
 import { useState } from 'react'
 
+// ── Change this to your Render/Railway URL after deploying ──────────────────
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function Contact() {
   const [form, setForm] = useState({ name: '', phone: '', message: '' })
   const [errors, setErrors] = useState({})
-  const [submitted, setSubmitted] = useState(false)
+  const [status, setStatus] = useState('idle') // idle | loading | success | error
+  const [serverMessage, setServerMessage] = useState('')
 
   const validate = () => {
     const e = {}
-    if (!form.name.trim()) e.name = 'Name is required'
-    if (!form.phone.trim() || !/^[6-9]\d{9}$/.test(form.phone)) e.phone = 'Enter a valid 10-digit phone number'
-    if (!form.message.trim()) e.message = 'Message cannot be empty'
+    if (!form.name.trim() || form.name.trim().length < 2)
+      e.name = 'Name must be at least 2 characters'
+    if (!form.phone.trim() || !/^[6-9]\d{9}$/.test(form.phone))
+      e.phone = 'Enter a valid 10-digit Indian mobile number'
+    if (!form.message.trim() || form.message.trim().length < 5)
+      e.message = 'Message must be at least 5 characters'
     return e
   }
 
@@ -18,11 +25,49 @@ export default function Contact() {
     if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    setSubmitted(true)
+
+    setStatus('loading')
+    setServerMessage('')
+
+    try {
+      const res = await fetch(`${API_URL}/api/enquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        setStatus('success')
+        setServerMessage(data.message)
+      } else {
+        // Handle validation errors from server
+        if (data.errors) {
+          const serverErrs = {}
+          data.errors.forEach((err) => { serverErrs[err.field] = err.message })
+          setErrors(serverErrs)
+          setStatus('idle')
+        } else {
+          setStatus('error')
+          setServerMessage(data.message || 'Something went wrong. Please try again.')
+        }
+      }
+    } catch {
+      setStatus('error')
+      setServerMessage('Could not reach server. Please call us directly at 7991175787.')
+    }
+  }
+
+  const handleReset = () => {
+    setForm({ name: '', phone: '', message: '' })
+    setErrors({})
+    setStatus('idle')
+    setServerMessage('')
   }
 
   return (
@@ -37,14 +82,13 @@ export default function Contact() {
             Contact <span className="text-emerald-600">Us</span>
           </h2>
           <p className="text-gray-500 text-lg max-w-xl mx-auto">
-            We are available for questions, feedback, or collaboration opportunities. Let us know how we can help!
+            We are available for questions, feedback, or collaboration. Let us know how we can help!
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* Left: Info + Map */}
           <div className="space-y-6">
-            {/* Contact Cards */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-gray-900 mb-5">Contact Details</h3>
               <ul className="space-y-4">
@@ -97,11 +141,8 @@ export default function Contact() {
               <iframe
                 title="NEW MEDICINE CENTER Location"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3588.4762!2d86.0873!3d26.3540!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39ee782b6aaaaaa3%3A0x4e6d4c9a6e7a10c!2sLaukahi%2C%20Bihar%20847108!5e0!3m2!1sen!2sin!4v1680000000000!5m2!1sen!2sin"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
+                width="100%" height="100%"
+                style={{ border: 0 }} allowFullScreen="" loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
@@ -109,71 +150,80 @@ export default function Contact() {
 
           {/* Right: Form */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            {submitted ? (
+            {status === 'success' ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Message Received!</h3>
-                <p className="text-gray-500 text-sm mb-6">Thank you, {form.name}. We will get back to you on {form.phone} shortly.</p>
-                <button
-                  onClick={() => { setSubmitted(false); setForm({ name: '', phone: '', message: '' }) }}
-                  className="text-emerald-600 font-semibold text-sm hover:underline"
-                >
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Message Sent!</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">{serverMessage}</p>
+                <button onClick={handleReset}
+                  className="text-emerald-600 font-semibold text-sm hover:underline">
                   Send another message
                 </button>
               </div>
             ) : (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Send Us a Message</h3>
+
+                {/* Server error banner */}
+                {status === 'error' && (
+                  <div className="mb-5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {serverMessage}
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
+                    <input type="text" name="name" value={form.name} onChange={handleChange}
                       placeholder="Your full name"
                       className={`w-full border ${errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all`}
                     />
                     {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                   </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={form.phone}
-                      onChange={handleChange}
-                      placeholder="10-digit mobile number"
-                      maxLength={10}
+                    <input type="tel" name="phone" value={form.phone} onChange={handleChange}
+                      placeholder="10-digit mobile number" maxLength={10}
                       className={`w-full border ${errors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all`}
                     />
                     {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Message</label>
-                    <textarea
-                      name="message"
-                      value={form.message}
-                      onChange={handleChange}
-                      rows={5}
-                      placeholder="How can we help you? Ask about medicine availability, pricing, bulk orders..."
+                    <textarea name="message" value={form.message} onChange={handleChange} rows={5}
+                      placeholder="Ask about medicine availability, pricing, bulk orders..."
                       className={`w-full border ${errors.message ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all resize-none`}
                     />
                     {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
                   </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    Send Message
+
+                  <button type="submit" disabled={status === 'loading'}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-200 flex items-center justify-center gap-2">
+                    {status === 'loading' ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send Message
+                      </>
+                    )}
                   </button>
                 </form>
               </>
